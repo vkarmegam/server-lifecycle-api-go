@@ -165,6 +165,25 @@ go run ./cmd/server/main.go
 * PostgreSQL is expected to be running on port `5432` (or as configured).
 
 
+ ###Running with Docker Compose
+*** For a complete environment (backend + PostgreSQL + Swagger UI):
+
+1. *Build Docker images:
+
+```Bash
+docker-compose build
+```
+2. *Start services:
+```Bash
+docker-compose up -d
+```
+* The API will be available at `http://localhost:8080`.
+
+* Swagger UI will be available at `http://localhost:8081/`.
+
+* PostgreSQL will be running on port 5432 (or as configured).
+
+
 # API Endpoints #
 You can explore the full API documentation via Swagger UI at `http://localhost:8080/swagger/index.html` when the server is running.
 
