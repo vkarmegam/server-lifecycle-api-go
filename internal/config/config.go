@@ -36,17 +36,23 @@ type Config struct {
 
 // Load loads configuration from environment variables.
 func Load() (*Config, error) {
-	// Try to load environment variables from a .envconfig file in the user's home directory
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load config: %w", err)
-	} else {
-		dotEnvPath := filepath.Join(homeDir, ".env") 
 
-		// godotenv.Load() will load variables from the .env file into the process's environment.
-		err = godotenv.Load(dotEnvPath)
+	// godotenv.Load() will load variables from the .env file into the process's environment.
+	err := godotenv.Load(".env")
+	if err != nil {
+
+		// Try to load environment variables from a .envconfig file in the user's home directory
+		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return nil, fmt.Errorf("failed to load config: %w", err)
+		} else {
+			dotEnvPath := filepath.Join(homeDir, ".env") 
+
+			// godotenv.Load() will load variables from the .env file into the process's environment.
+			err = godotenv.Load(dotEnvPath)
+			if err != nil {
+				return nil, fmt.Errorf("failed to load config: %w", err)
+			}
 		}
 	}
 

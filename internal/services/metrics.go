@@ -91,6 +91,7 @@ func (mu *MetricsUpdater) Start(ctx context.Context) {
 	mu.logger.Info("Metrics Updater started. Updating metrics every 30 seconds")
 	go func() {
 		ticker := time.NewTicker(30 * time.Second)
+		time.Sleep(30 * time.Second)
 		defer ticker.Stop() // Ensure the ticker is stopped when the goroutine exits
 
 		for {

@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database Service
+  db:
+    image: postgres:14-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME:-postgres}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-mysecretpassword}
+    ports:
+      - "5432:5432" # Map host port 5432 to container port 5432
+    volumes:
+      - db_data:/var/lib/postgresql/data # Persistent volume for database data
+      # UNCOMMENT THE LINE BELOW:
+      - ./migrations/schema.sql:/docker-entrypoint-initdb.d/init.sql # For initial schema setup
+    healthcheck: # Health check for PostgreSQL
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Go Backend Application Service
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "${HTTP_PORT:-8080}:${HTTP_PORT:-8080}" # Map host HTTP_PORT to container HTTP_PORT
+    environment:
+      HTTP_IP: ${HTTP_IP:-0.0.0.0}
+      HTTP_PORT: ${HTTP_PORT:-8080}
+      DB_HOST: db # <-- FIX: Changed from 127.0.0.1 or localhost to 'db'
+      DB_PORT: 5432 # This is the internal port of the 'db' container
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-mysecretpassword}
+      DB_NAME: ${DB_NAME:-postgres}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+      IP_ALLOCATION_CIDR: ${IP_ALLOCATION_CIDR:-192.168.0.0/24}
+      IP_EXCLUSION_LIST: ${IP_EXCLUSION_LIST:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      LOG_FILE_CAPACITY_IN_MB: ${LOG_FILE_CAPACITY_IN_MB:-10}
+      BILLING_DAEMON_INTERVAL: ${BILLING_DAEMON_INTERVAL:-1m}
+      SERVER_TYPE_WISE_PRICING: ${SERVER_TYPE_WISE_PRICING:-micro:0.01,small:0.05,medium:0.10,large:0.20,xlarge:0.40}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Swagger UI Service
+  swagger-ui:
+    image: swaggerapi/swagger-ui:latest
+    restart: always
+    ports:
+      - "8081:8080"
+    environment:
+      SWAGGER_JSON_URL: http://localhost:8080/swagger/doc.json
+    depends_on:
+      app:
+        condition: service_started
+
+volumes:
+  db_data:
