@@ -97,7 +97,7 @@ The project follows a standard idiomatic Go project layout:
 1. **Clone the repository:**
 
    ```bash
-   git clone go-virtual-server.git
+   git clone https://github.com/vkarmegam/server-lifecycle-api-go.git
    cd go-virtual-server
    ```
 2. **Environment Configuration (.env file):**
