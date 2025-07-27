@@ -1,0 +1,370 @@
+basePath: /
+definitions:
+  go-virtual-server_internal_models.BillingInfo:
+    properties:
+      billingModel:
+        description: e.g., "hourly", "monthly", "per_request"
+        example: hourly
+        type: string
+      currencyUnit:
+        description: e.g., "USD", "EUR", "GBP"
+        example: USD
+        type: string
+      estimatedCurrentCost:
+        description: Estimated cost for the current (partial) billing cycle or total
+          accumulated cost
+        example: 0.01
+        type: number
+      totalUptimeSeconds:
+        description: Total cumulative active time for the server
+        example: 3600
+        type: integer
+      unitPrice:
+        description: Price per unit (e.g., per hour, per request)
+        example: 0.01
+        type: number
+      updatedTime:
+        description: Start of the current billing period
+        example: "2023-10-27T09:00:00Z"
+        type: string
+    type: object
+  go-virtual-server_internal_models.ListServersResponse:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      servers:
+        items:
+          $ref: '#/definitions/go-virtual-server_internal_models.ServerResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  go-virtual-server_internal_models.ProvisionServerRequest:
+    properties:
+      name:
+        example: my-app-server
+        type: string
+      region:
+        example: us-east-1
+        type: string
+      type:
+        example: t2.micro
+        type: string
+    type: object
+  go-virtual-server_internal_models.ServerActionRequest:
+    properties:
+      action:
+        description: start, stop, reboot, terminate
+        example: start
+        type: string
+    type: object
+  go-virtual-server_internal_models.ServerLifecycleLogEntry:
+    properties:
+      ACTION:
+        type: string
+      REQUEST_ID:
+        type: string
+      SERVER_ID:
+        type: string
+      TIME:
+        type: string
+    type: object
+  go-virtual-server_internal_models.ServerLogsResponse:
+    properties:
+      logs:
+        items:
+          $ref: '#/definitions/go-virtual-server_internal_models.ServerLifecycleLogEntry'
+        type: array
+    type: object
+  go-virtual-server_internal_models.ServerResponse:
+    properties:
+      billingInfo:
+        $ref: '#/definitions/go-virtual-server_internal_models.BillingInfo'
+      createdAt:
+        example: "2023-10-27T09:55:00Z"
+        type: string
+      hourlyCost:
+        example: 0.01
+        type: number
+      id:
+        example: a1b2c3d4-e5f6-7890-1234-567890abcdef
+        type: string
+      ipAddress:
+        example: 192.168.1.10
+        type: string
+      lastStatusUpdate:
+        example: "2023-10-27T10:15:00Z"
+        type: string
+      lifecycleLogs:
+        items:
+          type: integer
+        type: array
+      name:
+        example: my-app-server
+        type: string
+      provisionedAt:
+        example: "2023-10-27T10:00:00Z"
+        type: string
+      region:
+        example: us-east-1
+        type: string
+      status:
+        example: running
+        type: string
+      type:
+        example: t2.micro
+        type: string
+      updatedAt:
+        example: "2023-10-27T10:15:00Z"
+        type: string
+      uptimeSeconds:
+        example: 900
+        type: integer
+    type: object
+  go-virtual-server_internal_util.ErrorResponse:
+    properties:
+      code:
+        type: integer
+      message:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: |-
+    This is a virtual server management API built with Go, Chi, and PostgreSQL.
+
+
+    to View Methods go to http://localhost:8080/metrics
+
+    karmegam vadivel
+    https://github.com/vkarmegam
+    https://www.linkedin.com/in/karmegamv
+  title: Virtual Server Management API
+  version: "1.0"
+paths:
+  /healthz:
+    get:
+      description: Checks if the application is alive and responding.
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Application Liveness Probe
+      tags:
+      - Health
+  /readyz:
+    get:
+      description: Checks if the application is ready to serve traffic, including
+        dependencies like the database.
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "503":
+          description: Service Unavailable
+          schema:
+            type: string
+      summary: Application Readiness Probe
+      tags:
+      - Health
+  /server:
+    post:
+      consumes:
+      - application/json
+      description: Provisions a new virtual server with specified details.
+      parameters:
+      - description: Server provision request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/go-virtual-server_internal_models.ProvisionServerRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/go-virtual-server_internal_models.ServerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/go-virtual-server_internal_util.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/go-virtual-server_internal_util.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/go-virtual-server_internal_util.ErrorResponse'
+      summary: Provision a new virtual server
+      tags:
+      - server
+  /servers:
+    get:
+      description: Lists all virtual servers, filterable by region, status, type;
+        supports pagination (limit, offset); sorted (newest first).
+      parameters:
+      - description: Filter by region
+        in: query
+        name: region
+        type: string
+      - description: Filter by status (e.g., provisioning, running, stopped, terminated,
+          error)
+        in: query
+        name: status
+        type: string
+      - description: Filter by server type (e.g., t2.micro, m5.large)
+        in: query
+        name: type
+        type: string
+      - default: 10
+        description: Number of results to return (default 10, max 100)
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of results to skip
+        in: query
+        minimum: 0
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/go-virtual-server_internal_models.ListServersResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/go-virtual-server_internal_util.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/go-virtual-server_internal_util.ErrorResponse'
+      summary: List all servers
+      tags:
+      - servers
+  /servers/{serverID}:
+    get:
+      description: Retrieves full metadata for a specific virtual server, including
+        live uptime and billing.
+      parameters:
+      - description: ID of the server
+        in: path
+        name: serverID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/go-virtual-server_internal_models.ServerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/go-virtual-server_internal_util.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/go-virtual-server_internal_util.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/go-virtual-server_internal_util.ErrorResponse'
+      summary: Retrieve full metadata for a server
+      tags:
+      - servers
+  /servers/{serverID}/action:
+    post:
+      consumes:
+      - application/json
+      description: Performs actions like start, stop, reboot, terminate on a virtual
+        server. Enforces valid FSM transitions.
+      parameters:
+      - description: ID of the server
+        in: path
+        name: serverID
+        required: true
+        type: string
+      - description: Action to perform (start, stop, reboot, terminate)
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/go-virtual-server_internal_models.ServerActionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/go-virtual-server_internal_models.ServerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/go-virtual-server_internal_util.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/go-virtual-server_internal_util.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/go-virtual-server_internal_util.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/go-virtual-server_internal_util.ErrorResponse'
+      summary: Perform an action on a server
+      tags:
+      - servers
+  /servers/{serverID}/logs:
+    get:
+      description: Retrieves the last 100 lifecycle events for a specific virtual
+        server.
+      parameters:
+      - description: ID of the server
+        in: path
+        name: serverID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/go-virtual-server_internal_models.ServerLogsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/go-virtual-server_internal_util.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/go-virtual-server_internal_util.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/go-virtual-server_internal_util.ErrorResponse'
+      summary: Return last 100 lifecycle events
+      tags:
+      - servers
+swagger: "2.0"
