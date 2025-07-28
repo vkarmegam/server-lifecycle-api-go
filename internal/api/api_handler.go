@@ -162,6 +162,13 @@ func (api *ServerAPI) PerformServerAction(w http.ResponseWriter, r *http.Request
 	}
 
 	if err != nil {
+
+		if strings.Contains(err.Error(), "invalid state transition") {
+			api.logger.Warn("Invalid server action requested", zap.String("action", req.Action))
+			util.RespondWithError(w, http.StatusConflict, "Invalid action: must be start, stop, reboot, or terminate")
+			return
+		}
+
 		api.logger.Error("Failed to perform server action",
 			zap.String("serverID", serverIDStr),
 			zap.String("action", req.Action),

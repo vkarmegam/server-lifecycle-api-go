@@ -251,7 +251,9 @@ func (s *ServerService) TerminateServer(ctx context.Context, server sqlc.Server)
 // It appends a new log entry, rotating if the array exceeds 100 entries.
 // It returns the updated lifecycle_logs as []byte (JSONB) and an error.
 func AppendServerLifecycleLogs(s *ServerService, bd *BillingDaemon, ctx context.Context, serverID pgtype.UUID, message []byte) error {
-
+	if s == nil {
+		return fmt.Errorf("nil ServerService passed to AppendServerLifecycleLogs")
+	}
 	if s.queries != nil {
 		updatedLogs, err := s.queries.AppendServerLifecycleLog(ctx, sqlc.AppendServerLifecycleLogParams{
 			Column1: message,
